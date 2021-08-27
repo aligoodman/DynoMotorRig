@@ -9,6 +9,7 @@ float max;
 
 //testing git commit
 //testing updating from github to computer
+//testing updating from ipad
 
 void setup() {
   
