@@ -51,6 +51,10 @@ void loop() {
     for (int i = 0; i <= max; i++) {
     analogWrite(DAC0, i);
     delay(10);
+    for (int i = 0; i <= max; i++) {
+    analogWrite(DAC0, (Max-i));
+    delay(10);
+    
   }
 
 }
