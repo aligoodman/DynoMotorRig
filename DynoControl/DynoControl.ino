@@ -8,6 +8,7 @@ float value;
 float max;
 
 //testing git commit
+//testing updating from github to computer
 
 void setup() {
   
