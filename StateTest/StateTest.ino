@@ -16,6 +16,7 @@ void setup() {
   /** Initiate VescUart class */
 
   pinMode(A0, INPUT);
+  pinMode(A0, INPUT);
   analogReadResolution(12);
   Serial.begin(9600);
   Serial.setTimeout(3);
@@ -52,14 +53,16 @@ void loop() {
 /*Test case*/
     case '2':
       digitalWrite(41, LOW);
-      break;
+      delay(500);
+      inByte = '3';
 
 /*Test case*/
     case '3':
       digitalWrite(41, HIGH);
-      break;
+      delay(500);
+      inByte = '2';
       
-/*Set current to value set from case 1*/
+/*Ramp current to value set from case 1*/
     case '4':
       Serial.println("Enter any value to exit");
       for( float c = 0; c <= current; c += 0.1){
@@ -74,7 +77,12 @@ void loop() {
       }
       break;
       
-/*Get torque and vesc data*/
+/*Default case, set motor at desired current*/
+
+    case default:
+      
+      
+/*Get torque and vesc data one time*/
      case '5':
        UART2.setCurrent(current);
        Torque = 0;
@@ -105,9 +113,47 @@ void loop() {
       UART2.setCurrent(current);
       break;
 
+/*Get torque and vesc data repetativly*/
+     case '6':
+       while(1) {
+        if(Serial.parseInt() != 0) {
+           break;
+        }
+        UART2.setCurrent(current);
+        Torque = 0;
+        count = 0;
+        for(int i = 0; i<= 100000; i++){
+          Torque +=analogRead(A0);
+           count += 1;
+        }
+        UART2.setCurrent(current);
+        Torque = ((((Torque/count)-zero)/4096)/1.25)*20*3.3;
+        if ( UART2.getVescValues() ) {
+
+          Serial.print("RPM, ");
+          Serial.println(UART2.data.rpm/7);
+          Serial.print("Input Voltage, ");
+          Serial.println(UART2.data.inpVoltage);
+          Serial.print("Input Current, ");
+          Serial.println(UART2.data.avgInputCurrent);
+          Serial.print("Motor Current, ");
+          Serial.println(UART2.data.avgMotorCurrent);
+          Serial.print("Torque, ");
+          Serial.println(Torque);
+
+        }
+        else {
+          Serial.println("Failed to get data!");
+        }
+        UART2.setCurrent(current);
+        if(Serial.parseInt() != 0) {
+           break;
+        }
+      }
+      break;
 
 /*Get Torque zero when motor is stationary*/
-      case '6':
+      case '7':
         Torque = 0;
         count = 0;
         for(int i = 0; i<= 10000; i = i + 1){
