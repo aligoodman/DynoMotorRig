@@ -54,13 +54,13 @@ void loop() {
     case '2':
       digitalWrite(41, LOW);
       delay(500);
-      inByte = '3';
+      break;
 
 /*Test case*/
     case '3':
       digitalWrite(41, HIGH);
       delay(500);
-      inByte = '2';
+      break;
       
 /*Ramp current to value set from case 1*/
     case '4':
@@ -79,7 +79,6 @@ void loop() {
       
 /*Default case, set motor at desired current*/
 
-    case default:
       
       
 /*Get torque and vesc data one time*/
