@@ -100,11 +100,11 @@ void loop() {
          count += 1;
        }
        UART2.setBrakeCurrent(current);
-       Torque = ((((Torque/count)-zero)/4096)/1.25)*20*3.3;
+       Torque = ((((Torque/count)-zero)/4096)/2.5)*20*3.3;
        if ( UART2.getVescValues() ) {
 
         Serial.print("RPM, ");
-        Serial.println(UART2.data.rpm/7);
+        Serial.println(UART2.data.rpm/11);
         Serial.print("Input Voltage, ");
         Serial.println(UART2.data.inpVoltage);
         Serial.print("Input Current, ");
@@ -137,7 +137,7 @@ void loop() {
            count += 1;
         }
         UART2.setBrakeCurrent(current);
-        Torque = ((((Torque/count)-zero)/4096)/1.25)*20*3.3;
+        Torque = ((((Torque/count)-zero)/4096)/2.5)*20*3.3;
         if ( UART2.getVescValues() ) {
 
           Serial.print("RPM, ");
@@ -180,7 +180,7 @@ void loop() {
       
 /* Ramp torque down rather than a hard stop*/      
       case 8:
-        for( float c = current; c >= current; c -= 0.1){
+        for( float c = current; c >= 0; c -= 0.1){
           UART2.setBrakeCurrent(c);
           delay(10);
         }
