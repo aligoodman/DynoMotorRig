@@ -8,6 +8,7 @@ float current;
 int count;
 float Torque;
 float zero;
+int inByte = 0;
 
 
 VescUart UART2;
@@ -31,16 +32,20 @@ void setup() {
 }
 
 void loop() {
-
-  if (Serial.available() > 0) {
-
-    int inByte = Serial.read();
-
+  if(inByte == 0) {
+    
+      Serial.setTimeout(300000);
+      Serial.println("Select Case");
+      inByte = Serial.parseInt();
+      Serial.println(inByte);
+      Serial.setTimeout(3);
+    
+  }
     
   switch(inByte) {
 
 /*Declare current value*/
-    case '1':
+    case 1:
       current = 0;
       Serial.println("Enter Current");
       while(current == 0) {
@@ -48,29 +53,32 @@ void loop() {
       }
       
       Serial.println(current);
+      inByte = 0;
       break;
       
 /*Test case*/
-    case '2':
+    case 2:
       digitalWrite(41, LOW);
       delay(500);
+      inByte = 3;
       break;
 
 /*Test case*/
-    case '3':
+    case 3:
       digitalWrite(41, HIGH);
       delay(500);
+      inByte = 2;
       break;
       
 /*Ramp current to value set from case 1*/
-    case '4':
+    case 4:
       Serial.println("Enter any value to exit");
       for( float c = 0; c <= current; c += 0.1){
-        UART2.setCurrent(c);
+        UART2.setBrakeCurrent(c);
         delay(10);
       }
       while(1) {
-        UART2.setCurrent(current);
+        UART2.setBrakeCurrent(current);
         if(Serial.parseInt() != 0) {
           break;
         }  
@@ -82,15 +90,15 @@ void loop() {
       
       
 /*Get torque and vesc data one time*/
-     case '5':
-       UART2.setCurrent(current);
+     case 5:
+       UART2.setBrakeCurrent(current);
        Torque = 0;
        count = 0;
        for(int i = 0; i<= 100000; i++){
          Torque +=analogRead(A0);
          count += 1;
        }
-       UART2.setCurrent(current);
+       UART2.setBrakeCurrent(current);
        Torque = ((((Torque/count)-zero)/4096)/1.25)*20*3.3;
        if ( UART2.getVescValues() ) {
 
@@ -109,23 +117,23 @@ void loop() {
        else {
         Serial.println("Failed to get data!");
        }
-      UART2.setCurrent(current);
+      UART2.setBrakeCurrent(current);
       break;
 
 /*Get torque and vesc data repetativly*/
-     case '6':
+     case 6:
        while(1) {
         if(Serial.parseInt() != 0) {
            break;
         }
-        UART2.setCurrent(current);
+        UART2.setBrakeCurrent(current);
         Torque = 0;
         count = 0;
         for(int i = 0; i<= 100000; i++){
           Torque +=analogRead(A0);
            count += 1;
         }
-        UART2.setCurrent(current);
+        UART2.setBrakeCurrent(current);
         Torque = ((((Torque/count)-zero)/4096)/1.25)*20*3.3;
         if ( UART2.getVescValues() ) {
 
@@ -144,7 +152,7 @@ void loop() {
         else {
           Serial.println("Failed to get data!");
         }
-        UART2.setCurrent(current);
+        UART2.setBrakeCurrent(current);
         if(Serial.parseInt() != 0) {
            break;
         }
@@ -152,7 +160,7 @@ void loop() {
       break;
 
 /*Get Torque zero when motor is stationary*/
-      case '7':
+      case 7:
         Torque = 0;
         count = 0;
         for(int i = 0; i<= 10000; i = i + 1){
@@ -161,8 +169,8 @@ void loop() {
         }
         Torque = Torque/count;
         zero = Torque;
-        Serial.println(zero);
+        Serial.println("Zero is: ");
+        Serial.print(zero);
         break;
     }
-  }
 }
