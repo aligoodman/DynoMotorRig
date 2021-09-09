@@ -228,6 +228,18 @@ void loop() {
           }
           break;       
         }
+        
+/* want to see how quickly we can pull data from the vesc (mainly rpm)*/
+      case 11:
+      while(1) {
+          if ( UART2.getVescValues() ) {
+            float rpm = UART2.data.rpm/11;
+            serial.println(rpm);
+          }
+          else {
+            Serial.println("fail");
+          }
+      }
       
     }
 }
