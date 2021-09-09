@@ -17,8 +17,9 @@ void setup() {
   /** Initiate VescUart class */
 
   pinMode(A0, INPUT);
-  pinMode(A0, INPUT);
+  pinMode(A1, INPUT);
   analogReadResolution(12);
+  analogWriteResolution(12);
   Serial.begin(9600);
   Serial.setTimeout(3);
   pinMode(41, OUTPUT);
@@ -189,9 +190,9 @@ void loop() {
 
 /* want to investigate the frequency response of the motor*/
       case 9:
-        digitalWrite(A41, HIGH);
+        digitalWrite(41, HIGH);
         delay(3000);
-        UART2.setBrakecurrent(current);
+        UART2.setBrakeCurrent(current);
         delay(5000);
         current = 0;
         UART2.setBrakeCurrent(current);
@@ -201,22 +202,26 @@ void loop() {
 /*Have a go at a torque tracking given a speed input*/
       case 10:
         float sumSpeed = 0;
-        int spCount = 0;
         current = 0;
         while(1) {
         //average over 10 readings
-          for(int b = 0, b <=10, ++1) {
+          sumSpeed=0;
+          for(int b = 0; b <=10; ++b) {
             sumSpeed += analogRead(A1);
-            spCount += 1;
+            if(Serial.parseInt() != 0) {
+              inByte = 8;
+              break;
+            }
             delay(5);
-            Serial.print(count);
           }
-          avSpeed = (sumSpeed/spCount)
-          currentScale = 0.001;
-          current = currentScale*avSpeed;
-          UART2.setBrakeCurrent(current);
+          Serial.println(analogRead(A1));
+          float avSpeed = (sumSpeed/11);
+          float currentScale = 0.5;
+          current = avSpeed;
+          
+          analogWrite(DAC0,current);
+          //UART2.setBrakeCurrent(current);
           if(Serial.parseInt() != 0) {
-            break;
             inByte = 8;
             break;
           }
