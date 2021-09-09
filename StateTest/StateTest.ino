@@ -75,6 +75,9 @@ void loop() {
       Serial.println("Enter any value to exit");
       for( float c = 0; c <= current; c += 0.1){
         UART2.setBrakeCurrent(c);
+        if(Serial.parseInt() != 0) {
+          break;
+        } 
         delay(10);
       }
       while(1) {
@@ -83,11 +86,8 @@ void loop() {
           break;
         }  
       }
+      inByte = 0;
       break;
-      
-/*Default case, set motor at desired current*/
-
-      
       
 /*Get torque and vesc data one time*/
      case 5:
@@ -112,10 +112,12 @@ void loop() {
         Serial.println(UART2.data.avgMotorCurrent);
         Serial.print("Torque, ");
         Serial.println(Torque);
+        inByte = 8;
 
        }
        else {
         Serial.println("Failed to get data!");
+        inByte = 5;
        }
       UART2.setBrakeCurrent(current);
       break;
@@ -172,5 +174,27 @@ void loop() {
         Serial.println("Zero is: ");
         Serial.print(zero);
         break;
+      
+/* Ramp torque down rather than a hard stop*/      
+      case 8:
+        for( float c = current; c >= current; c -= 0.1){
+          UART2.setBrakeCurrent(c);
+          delay(10);
+        }
+      current = 0;
+      inByte = 0;
+      break;
+
+/* want to investigate the frequency response of the motor*/
+      case 9:
+        digitalWrite(A41, HIGH);
+        delay(3000);
+        UART2.setBrakecurrent(current);
+        delay(5000);
+        current = 0;
+        UART2.setBrakeCurrent(current);
+        break;
+          
+      
     }
 }
