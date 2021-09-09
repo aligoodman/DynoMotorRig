@@ -156,9 +156,10 @@ void loop() {
         }
         UART2.setBrakeCurrent(current);
         if(Serial.parseInt() != 0) {
-           break;
+          break;
         }
       }
+      inByte = 0;
       break;
 
 /*Get Torque zero when motor is stationary*/
@@ -173,6 +174,7 @@ void loop() {
         zero = Torque;
         Serial.println("Zero is: ");
         Serial.print(zero);
+        inByte = 0;
         break;
       
 /* Ramp torque down rather than a hard stop*/      
@@ -193,6 +195,7 @@ void loop() {
         delay(5000);
         current = 0;
         UART2.setBrakeCurrent(current);
+        inByte = 0;
         break;
           
       
