@@ -197,7 +197,29 @@ void loop() {
         UART2.setBrakeCurrent(current);
         inByte = 0;
         break;
-          
+        
+/*Have a go at a torque tracking given a speed input*/
+      case 10:
+        float sumSpeed = 0;
+        int spCount = 0;
+        current = 0;
+        while(1) {
+          for(int b = 0, b <=10, ++1) {
+            sumSpeed += analogRead(A1);
+            spCount += 1
+            Serial.print(count);
+          }
+          avSpeed = (sumSpeed/spCount)
+          currentScale = 0.001;
+          current = currentScale*avSpeed;
+          UART2.setBrakeCurrent(current);
+          if(Serial.parseInt() != 0) {
+            break;
+            inByte = 8;
+            break;
+          }
+          break;       
+        }
       
     }
 }
