@@ -9,6 +9,9 @@ int count;
 float Torque;
 float zero;
 int inByte = 0;
+float sumSpeed;
+float avSpeed;
+float currentScale;
 
 
 VescUart UART2;
@@ -201,7 +204,7 @@ void loop() {
         
 /*Have a go at a torque tracking given a speed input*/
       case 10:
-        float sumSpeed = 0;
+        sumSpeed = 0;
         current = 0;
         while(1) {
         //average over 10 readings
@@ -215,9 +218,9 @@ void loop() {
             delay(5);
           }
           Serial.println(analogRead(A1));
-          float avSpeed = (sumSpeed/11);
+          avSpeed = (sumSpeed/11);
           Serial.println(avSpeed);
-          float currentScale = 0.5;
+          currentScale = 0.5;
           current = avSpeed;
           
           analogWrite(DAC0,current);
@@ -228,18 +231,20 @@ void loop() {
           }
           break;       
         }
-        
+
 /* want to see how quickly we can pull data from the vesc (mainly rpm)*/
       case 11:
-      while(1) {
-          if ( UART2.getVescValues() ) {
-            float rpm = UART2.data.rpm/11;
-            serial.println(rpm);
-          }
-          else {
-            Serial.println("fail");
-          }
-      }
+        while(1) {
+            if ( UART2.getVescValues() ) {
+              float rpm = UART2.data.rpm/11;
+              current = rpm*0.005;
+              UART2.setBrakeCurrent(current);
+              Serial.println(rpm);
+            }
+            else {
+              Serial.println("fail");
+            }
+        }
       
     }
 }
