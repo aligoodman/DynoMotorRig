@@ -232,7 +232,7 @@ bool VescUart::getVescValues(void) {
 	}
 
 	packSendPayload(command, 1);
-	// delay(1); //needed, otherwise data is not read
+	delay(1); //needed, otherwise data is not read: delay was commented out but ali put it in to test
 
 	int lenPayload = receiveUartMessage(payload);
 
