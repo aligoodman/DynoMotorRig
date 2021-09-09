@@ -204,9 +204,11 @@ void loop() {
         int spCount = 0;
         current = 0;
         while(1) {
+        //average over 10 readings
           for(int b = 0, b <=10, ++1) {
             sumSpeed += analogRead(A1);
-            spCount += 1
+            spCount += 1;
+            delay(5);
             Serial.print(count);
           }
           avSpeed = (sumSpeed/spCount)
