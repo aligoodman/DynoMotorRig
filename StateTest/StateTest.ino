@@ -216,6 +216,7 @@ void loop() {
           }
           Serial.println(analogRead(A1));
           float avSpeed = (sumSpeed/11);
+          Serial.println(avSpeed);
           float currentScale = 0.5;
           current = avSpeed;
           
