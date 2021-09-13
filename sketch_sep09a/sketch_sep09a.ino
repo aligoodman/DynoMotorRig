@@ -4,14 +4,23 @@ float value;
 float sinSignal;
 Servo myServo;
 
+#include <buffer.h>
+#include <crc.h>
+#include <datatypes.h>
+#include <VescUart.h>
+
+VescUart UART2;
+
 void setup() {
   // put your setup code here, to run once:
   Serial.setTimeout(100000);
   Serial.begin(9600);
+  Serial1.begin(19200);
   analogWriteResolution(12);
   analogReadResolution(12);
   myServo.attach(7);
   myServo.writeMicroseconds(1500);
+  UART2.setSerialPort(&Serial1);
 }
 
 
@@ -54,7 +63,8 @@ void loop() {
         //delay(200);
         //Serial.println(sinSignal);
         myServo.writeMicroseconds(1500+(sinSignal));
-        delay(20);
+        UART2.setBrakeCurrent(sinSignal/value);
+        delay(35);
       }
      //analogWrite(7,0);
     }
