@@ -248,17 +248,23 @@ float speedProfile2[88][2]{
 { -12.25  , 18.645834 } 
 };
 
+//Low pass butterworth filter order=1 alpha1=5 
 
 float startTime;
 int myIndex;
 float prevRadPerS, prevRPMtime;
 int i = 0;
+float FWspeed;
+bool Uncouple = false;
+float takeTime;
 
 typedef struct SYSTEM_PARAM_T{
   float motorHandleRatio;
   float motorKt;
   float hullDragConstant;
   float mass;
+  float cDamp;
+  float cIn;
 };
 
 typedef struct OAR_T{
@@ -279,6 +285,8 @@ typedef struct BOAT_STATE_T{
   float bladeDepth;
   float spoonRadPerS;
   float spoonForce;
+  float spoonAngle;
+  float spoonSpeed;
   float deflection;
   float deflectionVel;
   float handleForce;
@@ -286,6 +294,7 @@ typedef struct BOAT_STATE_T{
   float deflTimer;
   float boatEnergy;
   float relSpeed;
+  float handleSpeed;
 };
 
 typedef struct MOTOR_STATE_T{
@@ -297,7 +306,7 @@ typedef struct MOTOR_STATE_T{
   float revs;
 };
 
-BOAT_STATE_T boat = {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+BOAT_STATE_T boat = {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 MOTOR_STATE_T motor = {0, 0, 0, 0, 0, 0};
-OAR_T oar = {2.600, 1.150, 140, 0.0003, 2, 0}; //was 0.00015
-SYSTEM_PARAM_T systemParam = {100, 0.15, 2.77, 80};
+OAR_T oar = {2.600, 1.150, 200, 0.00002, 2, 0}; //was 0.00015
+SYSTEM_PARAM_T systemParam = {25, 0.15, 25, 90, 130, 0.066}; //was 2.77 energy bleed
