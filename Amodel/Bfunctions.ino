@@ -21,6 +21,7 @@ void getMotorSpeed(MOTOR_STATE_T* ms, SYSTEM_PARAM_T * sp){
 //trying to do deflection by integrating up the amount of revolutions and correlating that to handle position, 
 // from there we give spoon position as handleposition + deflection. Unsuprisingly it yielded no improved results. 
 void getHandleSpeed(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp){
+ 
   getMotorSpeed(ms, sp);
   float nowTime = micros();
   float handleAngle = ms->revs;
@@ -48,12 +49,11 @@ void getHandleSpeed(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARA
 //calculate the force on the rowing blade, include effects of blade profile, depth in water
 void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp){ 
   //get handle speed from motor speed
-  getMotorSpeed(ms, sp);
-  bs->handleSpeed = (ms->RPM/sp->motorHandleRatio)/60;
-  bs->handleAccel = (ms->accel/(2*3.14159))/sp->motorHandleRatio;
-  bs->spoonSpeed = bs->handleSpeed*(oar->outboardLength/oar->inboardLength);
+  getMotorSpeed(ms, sp); 
+  bs->handleSpeed = (ms->RPM/sp->motorHandleRatio)/60; //in m/s
+  bs->handleAccel = (ms->accel/(2*3.14159))/sp->motorHandleRatio; //in m/s^2
+  bs->spoonSpeed = bs->handleSpeed*(oar->outboardLength/oar->inboardLength); //in m/s
   //set blade depth to define the catch and finish
-  //ms->radPerS> bs->boatSpeed*sp->motorHandleRatio/oar->outboardLength)
   if (bs->spoonSpeed  > 0){
     bs->bladeDepth = 1;
   }
@@ -61,60 +61,63 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
     bs->bladeDepth = 0;
   }
   
+  //take a time for dt calculations 
   float timeNow = micros();
-  if(ms->radPerS > FWspeed and ((millis()-takeTime) > 500)){
+  
+  //
+  if((ms->radPerS*(6.33/14) > FWspeed)){
     Uncouple = false;
-    takeTime = millis();
   }
+  
   /* not using relative speed at the moment
   float relSpeed = ((bs->spoonSpeed) - bs->boatSpeed); // + bs->deflectionVel);
   float relAccel = (relSpeed - bs->relSpeed)/((timeNow - bs->deflTimer)/1000000); 
   bs->relSpeed = relSpeed; */
-    if abs(bs->handleSpeed<0.1){
-      filter.Tf = 1;
-    }
-    else if(abs(bs->handleSpeed) >=0.1){
-      filter.Tf = 0.3;  
-    }
+  
     
+    filter.Tf = 0.1;
     bs->handleAccel= filter(bs->handleAccel);
     
+    
     float accelComp = bs->handleAccel*(sp->cIn)*pow(70,2); 
-    float velComp = bs->handleSpeed*abs(bs->handleSpeed)*(sp->cDamp*(1e-6)*pow(70,3));
+    float velComp = bs->handleSpeed*abs(bs->handleSpeed)*(sp->cDamp));
+    float netForce = accelComp + velComp;
     Serial.print(accelComp);
     Serial.print(" ");
     Serial.println(velComp);
+    
       
     if(Uncouple == false){
-      FWspeed = ms->radPerS;
+      FWspeed = ms->radPerS*(6.33/14);
+      virHandSpeed = bs->handleSpeed;
+      bs->spoonForce = velComp + accelComp;
     }
-    if(bs->spoonForce > 0 and velComp + accelComp <= 0 and Uncouple == false and takeTime - millis() > 300){
-      takeTime = millis();
+    if(netForce <= 0 and Uncouple == false){
       Uncouple = true;
-      FWspeed = ms->radPerS;
     }
+    
+    float FWvelComp = virHandSpeed * abs(VirHandSpeed) * (sp->cDamp);
+    
     if(Uncouple == true){
-      FWspeed = FWspeed - ((FWspeed*abs(FWspeed)*pow((70/(2*3.14159*sp->motorHandleRatio)), 2)*(sp->cDamp*(1e-6))/sp->cIn)*((timeNow-bs->deflTimer)/1000000));
+      bs->spoonForce = 0;
+      FWspeed = FWspeed - (FWvelComp/70.67)/(sp->cIn)*((timeNow-bs->deflTimer)/1000000));
+      virHandSpeed = FWspeed/(70.67);
     }
     //Serial.println(FWspeed);
 
     
-     bs->spoonForce = velComp + accelComp;
-    
 
     
-  
-
   //bs->spoonForce = bs->bladeDepth*(oar->surfaceConstant)*bs->relSpeed*abs(bs->relSpeed) + bs->handleAccel*sp->cIn;
 
   //need constrain to stop decel force working against you. 
-  bs->spoonForce = constrain(bs->spoonForce, 0, 10000);
+    bs->spoonForce = constrain(bs->spoonForce, 0, 0);
    
 //  float deflection = -bs->spoonForce*oar->stiffness;
 //  bs->deflectionVel = (deflection - bs->deflection)/((timeNow - bs->deflTimer)/1000000);
 //  //bs->deflectionVel = constrain(bs->deflectionVel, -0.25, 0.25);
 //  bs->deflection = deflection;
-   bs->deflTimer = timeNow;
+    bs->deflTimer = timeNow;
 
 }
 
@@ -158,32 +161,14 @@ void getHandleForce(BOAT_STATE_T* bs, OAR_T* oar){
 //calculate desired motor torque from blade torque, accounting for rig dynamics
 void getMotorTorque(BOAT_STATE_T* bs, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp, OAR_T* oar){
   //handle force is in newtons so need to convert this to NM
-  if (ms->RPM > 0){
     ms->current = 1 + ((bs->handleForce)/(sp->motorHandleRatio*2*3.14159))/(sp->motorKt); // ms->accel*0.003;
-  }
-  if (ms->RPM <= 0){
-    //ms->current = -ms->accel*0.003;   
-    if(ms->RPM <0){
-      ms->current = 1;
-    }
-    else{
-      ms->current = 1;
-    }
-  }
-  if(Uncouple == true){
-    ms->current = 0;
-  }
-  
-  else if(Uncouple == false){
-    ms->current = ms->current;
-  }
   
   //ms->current = filter(ms->current);
 }
 
 //set the motor torque
 void setMotorTorque(MOTOR_STATE_T* ms){
-  filter.Tf = (0.1);
+
   ms->current = constrain(ms->current, -15, 15);
   UART2.setCurrent(ms->current);
 }

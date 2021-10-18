@@ -255,6 +255,7 @@ int myIndex;
 float prevRadPerS, prevRPMtime;
 int i = 0;
 float FWspeed;
+float VirHandSpeed;
 bool Uncouple = false;
 float takeTime;
 
