@@ -53,6 +53,7 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
   bs->handleSpeed = (ms->RPM/sp->motorHandleRatio)/60; //in m/s
   bs->handleAccel = (ms->accel/(2*3.14159))/sp->motorHandleRatio; //in m/s^2
   bs->spoonSpeed = bs->handleSpeed*(oar->outboardLength/oar->inboardLength); //in m/s
+  
   //set blade depth to define the catch and finish
   if (bs->spoonSpeed  > 0){
     bs->bladeDepth = 1;
@@ -61,12 +62,14 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
     bs->bladeDepth = 0;
   }
   
+  
   //take a time for dt calculations 
   float timeNow = micros();
-  
+  float CoupleTimer;
   //
   if((ms->radPerS*(6.33/14) > FWspeed)){
     Uncouple = false;
+    CoupleTimer = timeNow;
   }
   
   /* not using relative speed at the moment
@@ -87,6 +90,7 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
     
       
     if(Uncouple == false){
+      
       FWspeed = ms->radPerS*(6.33/14);
       virHandSpeed = bs->handleSpeed;
       bs->spoonForce = velComp + accelComp;
