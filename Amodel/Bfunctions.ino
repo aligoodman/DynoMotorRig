@@ -81,7 +81,6 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
     
     float accelComp = bs->handleAccel*(sp->cIn)*pow(70,2); 
     float velComp = bs->handleSpeed*abs(bs->handleSpeed)*(sp->cDamp));
-    float netForce = accelComp + velComp;
     Serial.print(accelComp);
     Serial.print(" ");
     Serial.println(velComp);
@@ -92,7 +91,10 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
       virHandSpeed = bs->handleSpeed;
       bs->spoonForce = velComp + accelComp;
     }
-    if(netForce <= 0 and Uncouple == false){
+    
+    float FWvelComp = virHandSpeed * abs(VirHandSpeed) * (sp->cDamp);
+    
+    if((FWvelComp/70.67)/(sp->cIn) <= ms->motorAccel*(6.33/14) and Uncouple == false){
       Uncouple = true;
     }
     
