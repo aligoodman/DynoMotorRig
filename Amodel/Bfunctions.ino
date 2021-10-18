@@ -98,7 +98,6 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
       Uncouple = true;
     }
     
-    float FWvelComp = virHandSpeed * abs(VirHandSpeed) * (sp->cDamp);
     
     if(Uncouple == true){
       bs->spoonForce = 0;
