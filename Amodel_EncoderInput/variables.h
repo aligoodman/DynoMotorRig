@@ -9,7 +9,7 @@ volatile boolean CaptureFlagA, CaptureFlagB, RevTick, Processing;
 bool RotDirection;
 volatile int32_t SamplesA_SL, SamplesB_SL, SamplesA, SamplesB, StartTimeA, StartTimeB;
 float AvPeriod, OldSamplesA, OldSamplesB, OldSamplesA_SL, OldAngle;
-float TimeNow, LastTime, dt, phase_var, phase, delta_theta, Count, Accel, OldSpeed, Speed, Ki = 10000, Kp = 1000;
+float TimeNow, TimeNowAccel, LastTime, LastTimeAccel, dt, phase_var, phase, Speed_var, delta_theta, delta_speed, Count, Accel, OldSpeed, Speed, Ki = 10000, Kp = 1000, KiA = 10000, Kpa = 1000;
 
 
 float speedProfile[154][2]{

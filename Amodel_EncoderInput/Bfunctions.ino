@@ -212,6 +212,18 @@ void getMotorSpeedEncoder(MOTOR_STATE_T* ms) {
   ms->accel = (ms->radPerS - OldSpeed)/dt;
   OldSpeed = ms->radPerS;
 }
+
+void getMotorAccelEncoder(MOTOR_STATE_T* ms){
+
+  TimeNowAccel = micros();
+  dt = (TimeNowAccel - LastTimeAccel)/1000000.0;
+  delta_speed = ms->radPerS - Speed_var;
+  Speed_var += (ms->accel + KpA*delta_speed)*dt;
+  ms->accel += (KiA*delta_speed)*dt;
+  LastTimeAccel = TimeNow;
+
+
+}
  
 
 
