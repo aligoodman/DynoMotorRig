@@ -131,8 +131,8 @@ void getSpoonForceSpring(MOTOR_STATE_T* ms, BOAT_STATE_T* bs, SYSTEM_PARAM_T* sp
 //calculate the force on the blade handle, incldue effects of blade stiffness, blade length, blade inertia etc
 void getHandleForce(BOAT_STATE_T* bs, OAR_T* oar){
   
-  //bs->handleForce = bs->spoonForce;
-  bs->handleForce = bs->spoonForce*(oar->inboardLength/oar->outboardLength);
+  bs->handleForce = bs->spoonForce;
+  //bs->handleForce = bs->spoonForce*(oar->inboardLength/oar->outboardLength);
   
 }
 
@@ -159,20 +159,20 @@ void getMotorTorque(BOAT_STATE_T* bs, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp, OAR
     ms->InertialOffsetTorque = (ms->accel*0.0005 + s*0.05);
     ms->InertialOffsetTorque = constrain(ms->InertialOffsetTorque, -0.6, 0.6);
     
-//    if( Uncouple == false){
-//      ms->current = ((bs->handleForce)/(sp->motorHandleRatio*2*3.14159))/(sp->motorKt);
-//    }
-//    if ( Uncouple == true){
-//      ms->current = -ms->InertialOffsetTorque/sp->motorKt; 
-//    } 
-    ms->current = ((bs->handleForce)/(sp->motorHandleRatio*2*3.14159))/(sp->motorKt);
+    if( Uncouple == false){
+      ms->current = ((bs->handleForce)/(sp->motorHandleRatio*2*3.14159))/(sp->motorKt);
+    }
+    if ( Uncouple == true){
+      ms->current = -ms->InertialOffsetTorque/sp->motorKt; 
+    } 
+
 
     
 }
 
 //set the motor torque
 void setMotorTorque(MOTOR_STATE_T* ms){
-  ms->current = constrain(ms->current, -20, 20);
+  ms->current = constrain(ms->current, -4, 60);
   UART2.setCurrent((ms->current));
     
 }
@@ -199,7 +199,7 @@ void setDynoSpeed(MOTOR_STATE_T* ms){
 
 void getMotorSpeedEncoder(MOTOR_STATE_T* ms) {
   phase = -(Count/2048)*2*M_PI;
-  while((micros()-LastTime)<250){
+  while((micros()-LastTime)<700){
     
   }
   TimeNow = micros();
@@ -209,7 +209,7 @@ void getMotorSpeedEncoder(MOTOR_STATE_T* ms) {
   ms->radPerS += (Ki*delta_theta)*dt;
   ms->RPM = ms->radPerS*(60/(2*M_PI));
   LastTime = TimeNow;
-  ms->accel = (ms->radPerS - OldSpeed)/dt;
+  ms->dutyAccel = (ms->radPerS - OldSpeed)/dt;
   OldSpeed = ms->radPerS;
 }
 
