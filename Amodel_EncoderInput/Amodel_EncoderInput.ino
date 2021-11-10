@@ -16,14 +16,15 @@ pinMode(A0, INPUT);
 void loop(){
  
   getMotorSpeedEncoder(&motor);
-  //getSpoonForce(&boat, &oar, &motor, &systemParam);
-  getSpoonForceSpring(&motor, &boat, &systemParam, &oar);
+  getMotorAccelEncoder(&motor);
+  getSpoonForce(&boat, &oar, &motor, &systemParam);
+  //getSpoonForceSpring(&motor, &boat, &systemParam, &oar);
   getHandleForce(&boat, &oar);
   getMotorTorque(&boat, &motor, &systemParam, &oar);
   setMotorTorque(&motor);
-  Serial.println(motor.current);
+  //Serial.println(dt*1000000);
   //Serial.print(" ");
-  //Serial.println(boat.spoonSpeed);
+  //Serial.println(motor.accel);
 
  
 }
