@@ -112,7 +112,7 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
 
 }
 
-calculate the force on the rowing blade, include effects of blade profile, depth in water
+calculate the force on the rowing blade, include effects of blade profile, depth in water 
 void getSpoonForceInertiaRamp(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp){ 
   
   //set blade depth to define the catch and finish
