@@ -112,6 +112,51 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
 
 }
 
+calculate the force on the rowing blade, include effects of blade profile, depth in water
+void getSpoonForceInertiaRamp(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp){ 
+  
+  //set blade depth to define the catch and finish
+  if (ms->RPM > 0){
+    bs->bladeDepth = 1;
+  }
+  else if(ms->RPM  <= 0){ 
+    bs->bladeDepth = 0;
+  }
+  
+  //take a time for dt calculations 
+  unsigned long timeNow = micros();
+    
+  if(ms->radPerS*(10.55/14) > bs->FWspeed){
+    Uncouple = false;
+  }
+  
+  float VarInert = sp->Cin*((ms->radPerS*10.55/14)/bs->FWspeed)
+  VarInert = constrain(VarInert, 0, sp->Cin);
+
+  float accelComp =(ms->accel*(10.55/14)*VarInert); 
+  float velComp = ms->radPerS*abs(ms->radPerS)*(sp->cDamp)*1e-6*pow((10.55/14),2);
+  
+  if(Uncouple == false){
+    bs->FWspeed = ms->radPerS*(10.55/14);
+  }
+  
+  float FWvelTorque = bs->FWspeed * abs(bs->FWspeed) * (sp->cDamp) * (1e-6);
+    
+  if((FWvelTorque)/(sp->cIn) <= - ms->accel*(10.55/14) and Uncouple == false){
+    Uncouple = true;
+  
+  }
+    
+  if(Uncouple == true){
+    bs->FWspeed = bs->FWspeed - ((FWvelTorque)/(sp->cIn))*(((float)(timeNow-bs->deflTimer))/1000000.0);
+  }
+
+  bs->spoonForce = bs->spoonForce*bs->bladeDepth;
+  bs->spoonForce = constrain(bs->spoonForce, 0, 1000);  
+  bs->deflTimer = timeNow;
+
+}
+
 void getSpoonForceSpring(MOTOR_STATE_T* ms, BOAT_STATE_T* bs, SYSTEM_PARAM_T* sp, OAR_T* oar){
   bs->handleSpeed = (ms->RPM/60)/sp->motorHandleRatio;
   bs->spoonSpeed = bs->handleSpeed * (oar->outboardLength/oar->inboardLength);
