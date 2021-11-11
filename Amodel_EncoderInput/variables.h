@@ -4,13 +4,13 @@ float potReadings [11][2]{
 uint32_t pulses[5000][3]{
 };
 
-volatile uint32_t  CaptureCountB, Duty, V, c, PeriodA, PeriodA_SL, PeriodB, PeriodB_SL, OldPeriodA, OldPeriodB, CaptureCountA;
+volatile uint32_t CaptureCountB, Duty, V, c, PeriodA_SL, PeriodB, PeriodB_SL, OldPeriodA, OldPeriodB, CaptureCountA, CaptureCountA_;
 volatile boolean CaptureFlagA, CaptureFlagB, RevTick, Processing;
 bool RotDirection;
 volatile int32_t SamplesA_SL, SamplesB_SL, SamplesA, SamplesB, StartTimeA, StartTimeB;
 float AvPeriod, OldSamplesA, OldSamplesB, OldSamplesA_SL, OldAngle;
-float TimeNow, TimeNowAccel, LastTime, LastTimeAccel, dt, phase_var, phase, Speed_var,
-      delta_theta, delta_speed, Count, Accel, OldSpeed, Speed, Ki = 80000, Kp = 1000, KiA = 10000, KpA = 1000;
+float TimeNow, TimeNowAccel, LastTime, LastTimeAccel, LastTimeAccel1, dt, phase_var, phase, Speed_var, Speed_var1, PeriodA,
+      delta_theta, delta_speed, Count, ticks, Accel, OldSpeed, Speed, Ki = 30000, Kp = 1000, Kd = 10000, KiA = 25000, KpA = 1000, KiAQ = 13000, KpAQ = 1000;
 
 
 float speedProfile[154][2]{
@@ -292,6 +292,7 @@ float PredictedRPM;
 float SumError;
 float Error;
 float TimeHere;
+float FWengageSpeed = 1;
 
 typedef struct SYSTEM_PARAM_T{
   float motorHandleRatio;
@@ -358,4 +359,4 @@ typedef struct MOTOR_STATE_T{
 BOAT_STATE_T boat = {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 MOTOR_STATE_T motor = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 OAR_T oar = {2.600, 1.150, 200, 100000, 2, 0}; //was 0.00015
-SYSTEM_PARAM_T systemParam = {15, 0.15, 500, 90, 130, 0.101, 0.00087}; //was 2.77 energy bleed
+SYSTEM_PARAM_T systemParam = {15, 0.15, 500, 90, 50, 0.076, 0.00087}; //was 2.77 energy bleed

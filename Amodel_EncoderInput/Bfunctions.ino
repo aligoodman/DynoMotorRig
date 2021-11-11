@@ -112,7 +112,6 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
 
 }
 
-calculate the force on the rowing blade, include effects of blade profile, depth in water 
 void getSpoonForceInertiaRamp(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp){ 
   
   //set blade depth to define the catch and finish
@@ -130,8 +129,8 @@ void getSpoonForceInertiaRamp(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, S
     Uncouple = false;
   }
   
-  float VarInert = sp->Cin*((ms->radPerS*10.55/14)/bs->FWspeed)
-  VarInert = constrain(VarInert, 0, sp->Cin);
+  float VarInert = sp->cIn*((ms->radPerS*10.55/14)/bs->FWspeed);
+  VarInert = constrain(VarInert, 0, sp->cIn);
 
   float accelComp =(ms->accel*(10.55/14)*VarInert); 
   float velComp = ms->radPerS*abs(ms->radPerS)*(sp->cDamp)*1e-6*pow((10.55/14),2);
@@ -169,8 +168,44 @@ void getSpoonForceSpring(MOTOR_STATE_T* ms, BOAT_STATE_T* bs, SYSTEM_PARAM_T* sp
   bs->boatSpeed = constrain(bs->boatSpeed, 0, 100);
 }
 
+void MimicHeavyFlyWheel(MOTOR_STATE_T* ms, BOAT_STATE_T* bs, SYSTEM_PARAM_T* sp, OAR_T* oar){
+ 
+  float Inertia = (sp->cIn)*(pow((ms->radPerS/(FWengageSpeed)),8));
+  Inertia = constrain(Inertia, 0, (sp->cIn));
+  float accelComp_  = ms->accel*Inertia; 
+  float velComp_ = ms->radPerS*abs(ms->radPerS)*sp->cDamp*1e-6;
+  bs->spoonForce = (70.67)*((accelComp_) + velComp_);
+  if(ms->radPerS <= 0){
+    bs->spoonForce = 0;
+  }
+  bs->spoonForce = constrain(bs->spoonForce, 0, 1000);
+  ms->current = 1 + ((bs->spoonForce)/(sp->motorHandleRatio*2*3.14159))/(sp->motorKt);
+}
 
+void getFWspeed(MOTOR_STATE_T* ms, BOAT_STATE_T* bs, SYSTEM_PARAM_T* sp, OAR_T* oar){
+ 
+  if(ms->radPerS > bs->FWspeed){
+    Uncouple = false;
+  }
 
+   if(Uncouple == false){
+    bs->FWspeed = ms->radPerS;
+  }
+
+  float FWvelTorque = bs->FWspeed * bs->FWspeed * (sp->cDamp) * (1e-6);
+    
+  if((FWvelTorque)/(sp->cIn) <= - ms->accel and Uncouple == false){
+    Uncouple = true;
+  
+  }
+    
+  if(Uncouple == true){
+    bs->FWspeed = bs->FWspeed - ((FWvelTorque)/(sp->cIn))*dt;
+    FWengageSpeed = bs->FWspeed;
+  }
+
+  
+}
 
 
 //calculate the force on the blade handle, incldue effects of blade stiffness, blade length, blade inertia etc
@@ -217,7 +252,7 @@ void getMotorTorque(BOAT_STATE_T* bs, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp, OAR
 
 //set the motor torque
 void setMotorTorque(MOTOR_STATE_T* ms){
-  ms->current = constrain(ms->current, -4, 60);
+  ms->current = constrain(ms->current, -60, 60);
   UART2.setCurrent((ms->current));
     
 }
@@ -243,8 +278,12 @@ void setDynoSpeed(MOTOR_STATE_T* ms){
 
 
 void getMotorSpeedEncoder(MOTOR_STATE_T* ms) {
-  phase = -(Count/2048)*2*M_PI;
-  while((micros()-LastTime)<700){
+  if(PeriodA == 0){
+    PeriodA = 100000000;
+  }
+  ms->dutyRPM = ((42000000/PeriodA)/(1024))*3.14159*2;
+  phase = (ticks/4096)*2*M_PI;
+  while((micros()-LastTime)<330){
     
   }
   TimeNow = micros();
@@ -254,7 +293,6 @@ void getMotorSpeedEncoder(MOTOR_STATE_T* ms) {
   ms->radPerS += (Ki*delta_theta)*dt;
   ms->RPM = ms->radPerS*(60/(2*M_PI));
   LastTime = TimeNow;
-  ms->dutyAccel = (ms->radPerS - OldSpeed)/dt;
   OldSpeed = ms->radPerS;
 }
 
@@ -266,6 +304,16 @@ void getMotorAccelEncoder(MOTOR_STATE_T* ms){
   Speed_var += (ms->accel + KpA*delta_speed)*dt;
   ms->accel += (KiA*delta_speed)*dt;
   LastTimeAccel = TimeNow;
+
+
+}
+
+void getMotorAccelEncoderQUICK(MOTOR_STATE_T* ms){
+
+
+  delta_speed = ms->radPerS - Speed_var1;
+  Speed_var1 += (ms->dutyAccel + KpAQ*delta_speed)*dt;
+  ms->dutyAccel += (KiAQ*delta_speed)*dt;
 
 
 }
@@ -292,63 +340,49 @@ void setupThings(){
   
   startTime = millis();
 
-  /*************  Timer Counter 0 Channel 1 to capture PWM pulses thru TIOA1  ************/
-  PMC->PMC_PCER0 |= PMC_PCER0_PID28;                       // Timer Counter 0 channel 1 IS TC1
+  pinMode(46, INPUT_PULLUP);
+  pinMode(44, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(46), CountTicksA, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(44), CountTicksB, CHANGE);
+ 
 
-  TC0->TC_CHANNEL[1].TC_CMR = TC_CMR_TCCLKS_TIMER_CLOCK1   // capture mode, MCK/2, clk on rising edge
-                              | TC_CMR_ABETRG              // TIOA is used as the external trigger
-                              | TC_CMR_LDRA_RISING       // load RA on rising edge of trigger input
-                              | TC_CMR_LDRB_FALLING;       // load RB on falling edge of trigger input
+}
 
-  TC0->TC_CHANNEL[1].TC_IER |= TC_IER_LDRAS | TC_IER_LDRBS; // Trigger interruption on Load RA and load RB
-  TC0->TC_CHANNEL[1].TC_CCR = TC_CCR_SWTRG | TC_CCR_CLKEN;  // Software trigger and enable
-
-  NVIC_DisableIRQ(TC1_IRQn);
-  NVIC_ClearPendingIRQ(TC1_IRQn);
-  NVIC_SetPriority(TC1_IRQn, 0);                      // Give TC1 interrupt the highest urgency
-  NVIC_SetPriority(SysTick_IRQn, 15);                 // SysTick interrupt will not interrupt TC1 interrupt
-  NVIC_EnableIRQ(TC1_IRQn);                           // Enable TC1 interrupts
+void CountTicksA () {
+  if(digitalRead(46)){
+    if(digitalRead(44)){
+      ticks--;
+    }
+    else{
+      ticks++;
+    }
+  }
+  else{
+    if(digitalRead(44)){
+      ticks++;
+    }
+    else{
+      ticks--;
+    }
+  }
 }
 
 
-void TC1_Handler() {
- 
-  static uint32_t _CaptureCountA, StartTime;
-
-  uint32_t status = TC0->TC_CHANNEL[1].TC_SR;       // Read and Clear status register
-
-
-  //if (status & TC_SR_LOVRS) abort();  // We are loosing some edges
-
-  if (status & TC_SR_LDRAS) {  // If ISR is triggered by LDRAS then ....
-    CaptureCountA = (uint32_t) TC0->TC_CHANNEL[1].TC_RA; // get data from capture register A for TC0 channel 1
-//    if(digitalRead(A5) == HIGH){
-//      Count = 0;
-//    }
-//    else{
-      if(digitalRead(A6) == LOW){
-        RotDirection = false;
-        Count--;
-      }
-      else{
-        RotDirection = true;
-        Count++;
-      }
-    }
-  //}
-  
-  else { /*if ((status & TC_SR_LDRBS) == TC_SR_LDRBS)*/  // If ISR is triggered by LDRBS then ....
-    CaptureCountB = (uint32_t) TC0->TC_CHANNEL[1].TC_RB; // get data from caputre register B for TC0 channel 1
-    if(digitalRead(A6) == LOW){
-      RotDirection = false;
-      Count++;
+void CountTicksB () {
+  if(digitalRead(44)){
+    if(digitalRead(46)){
+      ticks++;
     }
     else{
-      RotDirection = true;
-      Count--;
+      ticks--;
     }
-    
   }
- 
-
+  else{
+    if(digitalRead(46)){
+      ticks--;
+    }
+    else{
+      ticks++;
+    }
+  }
 }
