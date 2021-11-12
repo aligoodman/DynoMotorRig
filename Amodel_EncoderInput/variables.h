@@ -1,3 +1,5 @@
+float Ticks[10][2]
+
 float potReadings [11][2]{
 };
 

@@ -386,3 +386,75 @@ void CountTicksB () {
     }
   }
 }
+
+
+//-------------------------------------least squares encoder fitting---------------------------------
+
+float getSxp(xorder, yorder){
+  for(v = 0, v<10, v++){
+    S += (pow(Ticks[v][0], xorder)*(pow(Ticks[v][1], yorder);
+  }
+  return S;
+}
+
+float getSxx(){
+  Sxx = getSxp(2, 0) - (pow(getSxp(1,0),2)/10);
+  return Sxx;
+}
+
+float getSxy(){
+  Sxy = getSxp(1,1) - (getSxp(1,0)*getSxp(0,1))/10;
+  return Sxy;
+}
+
+float getSxx2(){
+  Sxx2 = getSxp(3,0) - (getSxp(1,0)*getSxp(2,0)/10);
+  return Sxx2;
+}
+
+float getSx2y(){
+  Sx2y = getSxp(2,1) - getSxp(2,0)*getSxp(0,1)/10;
+  return Sx2y;
+}
+
+float getSx2x2(){
+  Sx2x2 = getSxp(4,0) - pow(getSxp(2, 0),2)/10;
+  return Sx2x2;
+}
+
+float getSy(){
+  Sy = getSxp(0, 1);
+  return Sy;
+}
+
+float getSx2(){
+ Sx2 = getSxp(2,0);
+ return Sx2;
+
+}
+
+
+float PolyFit(){
+
+  Sxx = getSxx();
+  Sxy = getSxy();
+  Sxx2 = getSxx2();
+  Sx2y = getSx2y();
+  Sx2x2 = getSx2x2();
+  Sy = getSy();
+  Sx2 = getSx2();
+
+  a = (Sx2y*Sxx - Sxy*Sxx2)/(Sxx*Sx2x2 - pow(Sxx2,2));
+  b = (Sxy*Sx2x2 - Sx2y*Sxx2)/(Sxx*Sx2x2 - pow(Sxx2,2));
+  c = Sy/10 - b*(Sx/10) - a*pow(Sx2,2)/10;
+  
+  return a, b, c;
+} 
+
+
+
+
+
+
+
+
