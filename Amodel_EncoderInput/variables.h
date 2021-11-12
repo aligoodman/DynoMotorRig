@@ -1,4 +1,15 @@
-float Ticks[10][2]
+float Ticks[10][2]{
+{0, 9},
+{1, 28},
+{2, 57},
+{3, 96},
+{4, 145},
+{5, 204},
+{6, 273},
+{7, 352},
+{8, 441},
+{9, 540}    
+};
 
 float potReadings [11][2]{
 };
@@ -358,6 +369,12 @@ typedef struct MOTOR_STATE_T{
   float radPerSCorrected;
 };
 
+typedef struct PolyData{
+  float A;
+  float B;
+  float C;
+};
+PolyData poly = {0, 0, 0};
 BOAT_STATE_T boat = {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 MOTOR_STATE_T motor = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 OAR_T oar = {2.600, 1.150, 200, 100000, 2, 0}; //was 0.00015
