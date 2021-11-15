@@ -392,34 +392,34 @@ void CountTicksB () {
 
 float getSxp(int xorder, int yorder){
   float S = 0;
-  for(int v = 0; v<10; v++){
-    S += pow(Ticks[v][0], xorder)*pow(Ticks[v][1], yorder);
+  for(int v = 0; v<Length; v++){
+    S += pow(TicksNormalized[v][0], xorder)*pow(TicksNormalized[v][1], yorder);
   }
   return S;
 }
 
 float getSxx(){
-  float Sxx = getSxp(2, 0) - (pow(getSxp(1,0),2)/10);
+  float Sxx = getSxp(2, 0) - (pow(getSxp(1,0),2)/Length);
   return Sxx;
 }
 
 float getSxy(){
-  float Sxy = getSxp(1,1) - (getSxp(1,0)*getSxp(0,1))/10;
+  float Sxy = getSxp(1,1) - (getSxp(1,0)*getSxp(0,1))/Length;
   return Sxy;
 }
 
 float getSxx2(){
-  float Sxx2 = getSxp(3,0) - (getSxp(1,0)*getSxp(2,0)/10);
+  float Sxx2 = getSxp(3,0) - (getSxp(1,0)*getSxp(2,0)/Length);
   return Sxx2;
 }
 
 float getSx2y(){
-  float Sx2y = getSxp(2,1) - getSxp(2,0)*getSxp(0,1)/10;
+  float Sx2y = getSxp(2,1) - getSxp(2,0)*getSxp(0,1)/Length;
   return Sx2y;
 }
 
 float getSx2x2(){
-  float Sx2x2 = getSxp(4,0) - pow(getSxp(2, 0),2)/10;
+  float Sx2x2 = getSxp(4,0) - pow(getSxp(2, 0),2)/Length;
   return Sx2x2;
 }
 
@@ -439,14 +439,20 @@ float getSx(){
 }
 
 void CollectDataForPoly(){
+  
 
-  for(int z = 0; z<9; z++){
+  for(int z = 0; z<(Length - 1); z++){
         Ticks[z][0] = Ticks[z+1][0];
         Ticks[z][1] = Ticks[z+1][1];
       }
-      
-  Ticks[9][0] = micros()/1000000.0;
-  Ticks[9][1] = ticks;
+  
+  Ticks[Length - 1][0] = micros()/1000000.0;
+  Ticks[Length - 1][1] = ticks;
+
+  for(int y; y<Length; y++){
+    TicksNormalized[y][0] = Ticks[y][0] - Ticks[1][0];
+    TicksNormalized[y][1] = Ticks[y][1];
+  }
 }
 
 void PolyFit(PolyData* PD){
@@ -462,6 +468,8 @@ void PolyFit(PolyData* PD){
 
   PD->A = (Sx2y*Sxx - Sxy*Sxx2)/(Sxx*Sx2x2 - pow(Sxx2,2));
   PD->B = (Sxy*Sx2x2 - Sx2y*Sxx2)/(Sxx*Sx2x2 - pow(Sxx2,2));
-  PD->C = Sy/10 - PD->B*(Sx/10) - PD->A*Sx2/10;
+  PD->C = Sy/Length - PD->B*(Sx/Length) - PD->A*Sx2/Length;
+
+  
   
 } 

@@ -1,14 +1,7 @@
-float Ticks[10][2]{
-{0, 9},
-{1, 28},
-{2, 57},
-{3, 96},
-{4, 145},
-{5, 204},
-{6, 273},
-{7, 352},
-{8, 441},
-{9, 540}    
+const int Length = 12;
+float Ticks[Length][2]{   
+};
+float TicksNormalized[Length][2]{   
 };
 
 float potReadings [11][2]{
@@ -23,7 +16,7 @@ bool RotDirection;
 volatile int32_t SamplesA_SL, SamplesB_SL, SamplesA, SamplesB, StartTimeA, StartTimeB;
 float AvPeriod, OldSamplesA, OldSamplesB, OldSamplesA_SL, OldAngle;
 float TimeNow, TimeNowAccel, LastTime, LastTimeAccel, LastTimeAccel1, dt, phase_var, phase, Speed_var, Speed_var1, PeriodA,
-      delta_theta, delta_speed, Count, ticks, Accel, OldSpeed, Speed, Ki = 30000, Kp = 1000, Kd = 10000, KiA = 25000, KpA = 1000, KiAQ = 13000, KpAQ = 1000;
+      delta_theta, delta_speed, Count, ticks, Accel, OldSpeed, Speed, Ki = 3000, Kp = 100, Kd = 1000, KiA = 2500, KpA = 100, KiAQ = 13000, KpAQ = 1000;
 
 
 float speedProfile[154][2]{
