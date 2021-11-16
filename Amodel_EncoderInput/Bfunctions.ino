@@ -21,6 +21,8 @@ enum VESC_MASK_E:uint32_t{
       // 19th value float32 = mc_interface_read_reset_avg_vd()
       // 20th value float32 = mc_interface_read_reset_avg_vd()
 };
+
+//if we are using the string pot
 void GetPotSpeed(MOTOR_STATE_T* ms){
 
       PotReading = analogRead(A0);
@@ -41,6 +43,8 @@ void GetPotSpeed(MOTOR_STATE_T* ms){
       Serial.println(PotSpeed);
 }
 
+
+//if we want speed and accel data over UART
 void getMotorSpeedUART(MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp, BOAT_STATE_T* bs){
   bs->transducerForce = ((664.0-analogRead(A1))/23.0)*9.81;
   float prevRadPerS = ms->radPerS;
@@ -61,10 +65,11 @@ void getMotorSpeedUART(MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp, BOAT_STATE_T* bs){
   ms->dutyRPM = ms->duty*2500;
   ms->dutyAccel = 261.8*((ms->duty - prevDuty)/(((float)(ms->RPMtime - prevTime))/1000000.0));
   ms->accel = (((ms->radPerS - prevRadPerS)/(((float)(ms->RPMtime - prevTime))/1000000.0)));
-  ms->radPerSCorrected = 3.14159*2*(ms->RPM/60);
 }
 
-//calculate the force on the rowing blade, include effects of blade profile, depth in water
+
+
+//calculate spoon force, this was what was used a while ago and I dont use it anymore, at the moment we use MimicHeavyFlywheel()
 void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp){ 
   
   //set blade depth to define the catch and finish
@@ -112,62 +117,7 @@ void getSpoonForce(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM
 
 }
 
-void getSpoonForceInertiaRamp(BOAT_STATE_T* bs, OAR_T* oar, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp){ 
-  
-  //set blade depth to define the catch and finish
-  if (ms->RPM > 0){
-    bs->bladeDepth = 1;
-  }
-  else if(ms->RPM  <= 0){ 
-    bs->bladeDepth = 0;
-  }
-  
-  //take a time for dt calculations 
-  unsigned long timeNow = micros();
-    
-  if(ms->radPerS*(10.55/14) > bs->FWspeed){
-    Uncouple = false;
-  }
-  
-  float VarInert = sp->cIn*((ms->radPerS*10.55/14)/bs->FWspeed);
-  VarInert = constrain(VarInert, 0, sp->cIn);
-
-  float accelComp =(ms->accel*(10.55/14)*VarInert); 
-  float velComp = ms->radPerS*abs(ms->radPerS)*(sp->cDamp)*1e-6*pow((10.55/14),2);
-  
-  if(Uncouple == false){
-    bs->FWspeed = ms->radPerS*(10.55/14);
-  }
-  
-  float FWvelTorque = bs->FWspeed * abs(bs->FWspeed) * (sp->cDamp) * (1e-6);
-    
-  if((FWvelTorque)/(sp->cIn) <= - ms->accel*(10.55/14) and Uncouple == false){
-    Uncouple = true;
-  
-  }
-    
-  if(Uncouple == true){
-    bs->FWspeed = bs->FWspeed - ((FWvelTorque)/(sp->cIn))*(((float)(timeNow-bs->deflTimer))/1000000.0);
-  }
-
-  bs->spoonForce = bs->spoonForce*bs->bladeDepth;
-  bs->spoonForce = constrain(bs->spoonForce, 0, 1000);  
-  bs->deflTimer = timeNow;
-
-}
-
-void getSpoonForceSpring(MOTOR_STATE_T* ms, BOAT_STATE_T* bs, SYSTEM_PARAM_T* sp, OAR_T* oar){
-  bs->handleSpeed = (ms->RPM/60)/sp->motorHandleRatio;
-  bs->spoonSpeed = bs->handleSpeed * (oar->outboardLength/oar->inboardLength);
-  float OldTime = TimeHere;
-  TimeHere = micros();
-  float delta_t = (TimeHere - OldTime)/1000000.0;
-  bs->spoonForce += oar->stiffness*(bs->spoonSpeed - bs->boatSpeed)*delta_t;
-  bs->spoonForce = constrain(bs->spoonForce, 0, 1000);
-  bs->boatSpeed += (1/sp->mass)*(bs->spoonForce-(sp->hullDragConstant*pow(bs->boatSpeed,2)))*delta_t;
-  bs->boatSpeed = constrain(bs->boatSpeed, 0, 100);
-}
-
+//currently used spoonforce calculator
 void MimicHeavyFlyWheel(MOTOR_STATE_T* ms, BOAT_STATE_T* bs, SYSTEM_PARAM_T* sp, OAR_T* oar){
  
   float Inertia = (sp->cIn)*(pow((ms->radPerS/(FWengageSpeed)),8));
@@ -179,50 +129,37 @@ void MimicHeavyFlyWheel(MOTOR_STATE_T* ms, BOAT_STATE_T* bs, SYSTEM_PARAM_T* sp,
     bs->spoonForce = 0;
   }
   bs->spoonForce = constrain(bs->spoonForce, 0, 1000);
-  ms->current = 1 + ((bs->spoonForce)/(sp->motorHandleRatio*2*3.14159))/(sp->motorKt);
+  ms->current = ((bs->spoonForce)/(sp->motorHandleRatio*2*3.14159))/(sp->motorKt);
 }
 
+//tracks the flywheel speed so we know when to couple and uncouple etc
 void getFWspeed(MOTOR_STATE_T* ms, BOAT_STATE_T* bs, SYSTEM_PARAM_T* sp, OAR_T* oar){
- 
   if(ms->radPerS > bs->FWspeed){
     Uncouple = false;
   }
-
    if(Uncouple == false){
     bs->FWspeed = ms->radPerS;
   }
-
-  float FWvelTorque = bs->FWspeed * bs->FWspeed * (sp->cDamp) * (1e-6);
-    
+  float FWvelTorque = bs->FWspeed * bs->FWspeed * (sp->cDamp) * (1e-6);   
   if((FWvelTorque)/(sp->cIn) <= - ms->accel and Uncouple == false){
-    Uncouple = true;
-  
-  }
-    
+    Uncouple = true; 
+  }   
   if(Uncouple == true){
     bs->FWspeed = bs->FWspeed - ((FWvelTorque)/(sp->cIn))*dt;
     FWengageSpeed = bs->FWspeed;
-  }
-
-  
+  } 
 }
 
 
-//calculate the force on the blade handle, incldue effects of blade stiffness, blade length, blade inertia etc
+//get handle force from spoon force, on ergo mode they are the same
 void getHandleForce(BOAT_STATE_T* bs, OAR_T* oar){
-  
   bs->handleForce = bs->spoonForce;
   //bs->handleForce = bs->spoonForce*(oar->inboardLength/oar->outboardLength);
-  
 }
 
 
 
-
-
-
-
-//calculate desired motor torque from blade torque, accounting for rig dynamics
+//dont use this at the moment, was used with GetSpoonForce(). 
 void getMotorTorque(BOAT_STATE_T* bs, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp, OAR_T* oar){
     float s;
     
@@ -250,14 +187,13 @@ void getMotorTorque(BOAT_STATE_T* bs, MOTOR_STATE_T* ms, SYSTEM_PARAM_T* sp, OAR
     
 }
 
-//set the motor torque
+//sends current demand to motor, separate function so I can have it on or off without effecting everything else
 void setMotorTorque(MOTOR_STATE_T* ms){
-  ms->current = constrain(ms->current, -60, 60);
+  ms->current = constrain(ms->current, -80, 80);
   UART2.setCurrent((ms->current));
-    
 }
 
-
+//used in dyno rig
 void setDynoSpeed(MOTOR_STATE_T* ms){
   myIndex = int((millis() - startTime)/20);
   if (myIndex > 153){
@@ -273,17 +209,16 @@ void setDynoSpeed(MOTOR_STATE_T* ms){
   else {
     analogWrite(DAC1, 2030 + (speedProfile[myIndex][0])*5);
   }
-
 }
 
-
+//get motor speed fromt the encoder using the speed observer from vedders code
 void getMotorSpeedEncoder(MOTOR_STATE_T* ms) {
   if(PeriodA == 0){
     PeriodA = 100000000;
   }
   ms->dutyRPM = ((42000000/PeriodA)/(1024))*3.14159*2;
   phase = (ticks/4096)*2*M_PI;
-  while((micros()-LastTime)<330){
+  while((micros()-LastTime)<(ExecuteTime - 5)){
     
   }
   TimeNow = micros();
@@ -296,6 +231,8 @@ void getMotorSpeedEncoder(MOTOR_STATE_T* ms) {
   OldSpeed = ms->radPerS;
 }
 
+
+//get accel data from encoder using vedders code
 void getMotorAccelEncoder(MOTOR_STATE_T* ms){
 
   TimeNowAccel = micros();
@@ -308,18 +245,7 @@ void getMotorAccelEncoder(MOTOR_STATE_T* ms){
 
 }
 
-void getMotorAccelEncoderQUICK(MOTOR_STATE_T* ms){
-
-
-  delta_speed = ms->radPerS - Speed_var1;
-  Speed_var1 += (ms->dutyAccel + KpAQ*delta_speed)*dt;
-  ms->dutyAccel += (KiAQ*delta_speed)*dt;
-
-
-}
- 
-
-
+//setup stuff
 void setupThings(){
   // UART things for vesc
   pinMode(A6, INPUT_PULLUP);
@@ -340,13 +266,103 @@ void setupThings(){
   
   startTime = millis();
 
+//interrupt things
   pinMode(46, INPUT_PULLUP);
   pinMode(44, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(46), CountTicksA, CHANGE);
   attachInterrupt(digitalPinToInterrupt(44), CountTicksB, CHANGE);
- 
+
+//set the constant time values and calculate the constant parts of the least squares curve fit
+  for(int tr = 0; tr<Length; tr++){
+    Ticks[tr][0] = (ExecuteTime/1000000.0)*tr;
+  }
+  Sxx = getSxx();
+  Sxx2 = getSxx2();
+  Sx2x2 = getSx2x2();
+  Sx2 = getSx2();
+  Sx = getSx();
+
+  Denom = (Sxx*Sx2x2 - pow(Sxx2,2));
+}
+
+
+
+//-------------------------------------least squares encoder fitting---------------------------------
+
+//store the ticks data into an array for curve fit
+void CollectDataForPoly(){
+  for(int z = 0; z<(Length - 1); z++){
+        Ticks[z][1] = Ticks[z+1][1];
+      }
+  Ticks[Length - 1][1] = ticks;
 
 }
+
+//all this stuff is for calculating the curve fit
+float getSxp(int xorder, int yorder){
+  float S = 0;
+  for(int v = 0; v<Length; v++){
+    S += pow(Ticks[v][0], xorder)*pow(Ticks[v][1], yorder);
+  }
+  return S;
+}
+
+float getSxx(){
+  float Sxx = getSxp(2, 0) - (pow(getSxp(1,0),2)/Length);
+  return Sxx;
+}
+
+float getSxy(){
+  float Sxy = getSxp(1,1) - (Sx*getSxp(0,1))/Length;
+  return Sxy;
+}
+
+float getSxx2(){
+  float Sxx2 = getSxp(3,0) - (getSxp(1,0)*getSxp(2,0)/Length);
+  return Sxx2;
+}
+
+float getSx2y(){
+  float Sx2y = getSxp(2,1) - Sx2*getSxp(0,1)/Length;
+  return Sx2y;
+}
+
+float getSx2x2(){
+  float Sx2x2 = getSxp(4,0) - pow(getSxp(2, 0),2)/Length;
+  return Sx2x2;
+}
+
+float getSy(){
+  float Sy = getSxp(0, 1);
+  return Sy;
+}
+
+float getSx2(){
+ float Sx2 = getSxp(2,0);
+ return Sx2;
+}
+
+float getSx(){
+  float Sx = getSxp(1, 0);
+  return Sx;
+}
+
+
+void PolyFit(PolyData* PD, MOTOR_STATE_T* ms){
+
+  float Sxy = getSxy();
+  float Sx2y = getSx2y();
+  float Sy = getSy();
+
+  PD->A = (Sx2y*Sxx - Sxy*Sxx2)/Denom;
+  PD->B = (Sxy*Sx2x2 - Sx2y*Sxx2)/Denom;
+  PD->C = Sy/Length - PD->B*(Sx/Length) - PD->A*Sx2/Length;
+
+  ms->POLYradPerS = (2*poly.A*Ticks[Length - 1][0] + PD->B)*2*3.14159/4096;
+  ms->POLYaccel = (2*poly.A)*2*3.14159/4096; 
+} 
+
+//-------------------------- Our interrupt functions -------------------------------------------------------------
 
 void CountTicksA () {
   if(digitalRead(46)){
@@ -386,90 +402,3 @@ void CountTicksB () {
     }
   }
 }
-
-
-//-------------------------------------least squares encoder fitting---------------------------------
-
-float getSxp(int xorder, int yorder){
-  float S = 0;
-  for(int v = 0; v<Length; v++){
-    S += pow(TicksNormalized[v][0], xorder)*pow(TicksNormalized[v][1], yorder);
-  }
-  return S;
-}
-
-float getSxx(){
-  float Sxx = getSxp(2, 0) - (pow(getSxp(1,0),2)/Length);
-  return Sxx;
-}
-
-float getSxy(){
-  float Sxy = getSxp(1,1) - (getSxp(1,0)*getSxp(0,1))/Length;
-  return Sxy;
-}
-
-float getSxx2(){
-  float Sxx2 = getSxp(3,0) - (getSxp(1,0)*getSxp(2,0)/Length);
-  return Sxx2;
-}
-
-float getSx2y(){
-  float Sx2y = getSxp(2,1) - getSxp(2,0)*getSxp(0,1)/Length;
-  return Sx2y;
-}
-
-float getSx2x2(){
-  float Sx2x2 = getSxp(4,0) - pow(getSxp(2, 0),2)/Length;
-  return Sx2x2;
-}
-
-float getSy(){
-  float Sy = getSxp(0, 1);
-  return Sy;
-}
-
-float getSx2(){
- float Sx2 = getSxp(2,0);
- return Sx2;
-}
-
-float getSx(){
-  float Sx = getSxp(1, 0);
-  return Sx;
-}
-
-void CollectDataForPoly(){
-  
-
-  for(int z = 0; z<(Length - 1); z++){
-        Ticks[z][0] = Ticks[z+1][0];
-        Ticks[z][1] = Ticks[z+1][1];
-      }
-  
-  Ticks[Length - 1][0] = micros()/1000000.0;
-  Ticks[Length - 1][1] = ticks;
-
-  for(int y; y<Length; y++){
-    TicksNormalized[y][0] = Ticks[y][0] - Ticks[1][0];
-    TicksNormalized[y][1] = Ticks[y][1];
-  }
-}
-
-void PolyFit(PolyData* PD){
-
-  float Sxx = getSxx();
-  float Sxy = getSxy();
-  float Sxx2 = getSxx2();
-  float Sx2y = getSx2y();
-  float Sx2x2 = getSx2x2();
-  float Sy = getSy();
-  float Sx2 = getSx2();
-  float Sx = getSx();
-
-  PD->A = (Sx2y*Sxx - Sxy*Sxx2)/(Sxx*Sx2x2 - pow(Sxx2,2));
-  PD->B = (Sxy*Sx2x2 - Sx2y*Sxx2)/(Sxx*Sx2x2 - pow(Sxx2,2));
-  PD->C = Sy/Length - PD->B*(Sx/Length) - PD->A*Sx2/Length;
-
-  
-  
-} 

@@ -1,4 +1,9 @@
-const int Length = 12;
+//this tab is extremely messy, I have variables stored here that were used briefly and should have been removed,
+//needs to be sorted and organised...
+int xc = 0;
+const int Length = 20;
+float ExecuteTime = 250;
+float Denom;
 float Ticks[Length][2]{   
 };
 float TicksNormalized[Length][2]{   
@@ -7,8 +12,6 @@ float TicksNormalized[Length][2]{
 float potReadings [11][2]{
 };
 
-uint32_t pulses[5000][3]{
-};
 
 volatile uint32_t CaptureCountB, Duty, V, c, PeriodA_SL, PeriodB, PeriodB_SL, OldPeriodA, OldPeriodB, CaptureCountA, CaptureCountA_;
 volatile boolean CaptureFlagA, CaptureFlagB, RevTick, Processing;
@@ -16,7 +19,7 @@ bool RotDirection;
 volatile int32_t SamplesA_SL, SamplesB_SL, SamplesA, SamplesB, StartTimeA, StartTimeB;
 float AvPeriod, OldSamplesA, OldSamplesB, OldSamplesA_SL, OldAngle;
 float TimeNow, TimeNowAccel, LastTime, LastTimeAccel, LastTimeAccel1, dt, phase_var, phase, Speed_var, Speed_var1, PeriodA,
-      delta_theta, delta_speed, Count, ticks, Accel, OldSpeed, Speed, Ki = 3000, Kp = 100, Kd = 1000, KiA = 2500, KpA = 100, KiAQ = 13000, KpAQ = 1000;
+      delta_theta, delta_speed, Count, ticks, Accel, OldSpeed, Speed, Ki = 240000, Kp = 2000, KiA = 10000, KpA = 1500, KiAQ = 13000, KpAQ = 1000;
 
 
 float speedProfile[154][2]{
@@ -268,7 +271,6 @@ float speedProfile2[88][2]{
 { -12.25  , 18.645834 } 
 };
 
-//Low pass butterworth filter order=1 alpha1=5 
 
 float startTime;
 int myIndex;
@@ -299,6 +301,11 @@ float SumError;
 float Error;
 float TimeHere;
 float FWengageSpeed = 1;
+float Sxx; 
+float Sxx2; 
+float Sx2x2;
+float Sx2;
+float Sx;
 
 typedef struct SYSTEM_PARAM_T{
   float motorHandleRatio;
@@ -360,6 +367,8 @@ typedef struct MOTOR_STATE_T{
   long dutyRPM;
   float dutyAccel;
   float radPerSCorrected;
+  float POLYradPerS;
+  float POLYaccel;
 };
 
 typedef struct PolyData{
